@@ -1,96 +1,147 @@
 // ===================================
-// 仙人tools server.js（最終完全版）
+// 仙人tools 統合 server.js（chat + music + proxy）
+// 機能は一切変更なし
 // ===================================
 
 const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
 const path = require("path");
 const fs = require("fs");
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
 const PORT = process.env.PORT || 3000;
 
 // -----------------------------------
-// 1. 静的ファイル設定
+// view engine（music 用）
+// -----------------------------------
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "music/views"));
+
+// -----------------------------------
+// 静的ファイル
 // -----------------------------------
 
-// ルート直下（index.html 用）
+// ホーム
 app.use(express.static(__dirname));
 
-// chat の JS / CSS 用
+// chat
 app.use("/chat", express.static(path.join(__dirname, "chat/public")));
 
-// music の JS / CSS 用（← 重要）
+// music 静的（CSS / JS）
 app.use("/music", express.static(path.join(__dirname, "music/public")));
 
 // proxy
 app.use("/proxy", express.static(path.join(__dirname, "proxy")));
 
 // -----------------------------------
-// 2. EJS 設定（music 用）
+// ルーティング
 // -----------------------------------
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "music/views"));
 
-// -----------------------------------
-// 3. ホーム
-// -----------------------------------
+// ホーム
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// -----------------------------------
-// 4. chat
-// -----------------------------------
+// chat
 app.get("/chat/", (req, res) => {
-  const filePath = path.join(__dirname, "chat/public/index.html");
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).send("chat not found");
-  }
-
-  res.sendFile(filePath);
+  res.sendFile(path.join(__dirname, "chat/public/index.html"));
 });
 
 // -----------------------------------
-// 5. music
+// music router（← ★ 混ぜた部分）
 // -----------------------------------
-app.get("/music/", (req, res) => {
-  const ejsPath = path.join(__dirname, "music/views/index.ejs");
 
-  if (!fs.existsSync(ejsPath)) {
-    return res.status(404).send("music not found");
-  }
+const musicRouter = require("./music/routes/music");
+app.use("/music", musicRouter);
 
-  // index.ejs を描画
-  res.render("index");
+// -----------------------------------
+// Socket.IO（チャット機能そのまま）
+// -----------------------------------
+
+const rooms = {};
+
+io.on("connection", (socket) => {
+  console.log("接続:", socket.id);
+
+  socket.on("joinRoom", ({ username, room }, callback) => {
+    if (!username || !room) {
+      callback({ status: "error", message: "ニックネームとルーム名が必要です。" });
+      return;
+    }
+
+    if (!rooms[room]) rooms[room] = {};
+
+    if (Object.values(rooms[room]).includes(username)) {
+      callback({ status: "error", message: "そのニックネームは既に使われています。" });
+      return;
+    }
+
+    socket.join(room);
+    rooms[room][socket.id] = username;
+
+    socket.to(room).emit("message", {
+      user: "system",
+      text: `${username} がルームに参加しました。`,
+      image: null
+    });
+
+    socket.emit("message", {
+      user: "system",
+      text: `ようこそ ${username} さん`,
+      image: null
+    });
+
+    callback({ status: "ok" });
+  });
+
+  socket.on("chatMessage", ({ text, image }) => {
+    const joinedRooms = [...socket.rooms].filter(r => r !== socket.id);
+    if (joinedRooms.length === 0) return;
+
+    const room = joinedRooms[0];
+    const username = rooms[room]?.[socket.id];
+    if (!username) return;
+
+    io.to(room).emit("message", {
+      user: username,
+      text: text || "",
+      image: image || null
+    });
+  });
+
+  socket.on("disconnect", () => {
+    for (const room in rooms) {
+      if (rooms[room][socket.id]) {
+        const username = rooms[room][socket.id];
+        delete rooms[room][socket.id];
+
+        socket.to(room).emit("message", {
+          user: "system",
+          text: `${username} が退出しました。`,
+          image: null
+        });
+
+        if (Object.keys(rooms[room]).length === 0) {
+          delete rooms[room];
+        }
+        break;
+      }
+    }
+    console.log("切断:", socket.id);
+  });
 });
 
 // -----------------------------------
-// 6. proxy
+// 起動
 // -----------------------------------
-app.get("/proxy/", (req, res) => {
-  const filePath = path.join(__dirname, "proxy/index.html");
 
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).send("proxy not found");
-  }
-
-  res.sendFile(filePath);
-});
-
-// -----------------------------------
-// 7. 404
-// -----------------------------------
-app.use((req, res) => {
-  res.status(404).send("not found");
-});
-
-// -----------------------------------
-// 8. 起動
-// -----------------------------------
-app.listen(PORT, () => {
-  console.log("====================================");
-  console.log("仙人tools server running");
+server.listen(PORT, () => {
+  console.log("================================");
+  console.log("仙人tools 起動成功");
   console.log("PORT:", PORT);
-  console.log("====================================");
+  console.log("================================");
 });
