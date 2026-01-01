@@ -1,13 +1,7 @@
-// ===================================
-// 仙人tools 統合 server.js（chat + music + proxy）
-// 機能は一切変更なし
-// ===================================
-
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
-const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
@@ -15,52 +9,25 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
-// -----------------------------------
-// view engine（music 用）
-// -----------------------------------
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "music/views"));
 
-// -----------------------------------
-// 静的ファイル
-// -----------------------------------
-
-// ホーム
 app.use(express.static(__dirname));
-
-// chat
 app.use("/chat", express.static(path.join(__dirname, "chat/public")));
-
-// music 静的（CSS / JS）
 app.use("/music", express.static(path.join(__dirname, "music/public")));
-
-// proxy
 app.use("/proxy", express.static(path.join(__dirname, "proxy")));
+app.use("/ruret", express.static(path.join(__dirname, "ruret")));
 
-// -----------------------------------
-// ルーティング
-// -----------------------------------
-
-// ホーム
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// chat
 app.get("/chat/", (req, res) => {
   res.sendFile(path.join(__dirname, "chat/public/index.html"));
 });
 
-// -----------------------------------
-// music router（← ★ 混ぜた部分）
-// -----------------------------------
-
 const musicRouter = require("./music/routes/music");
 app.use("/music", musicRouter);
-
-// -----------------------------------
-// Socket.IO（チャット機能そのまま）
-// -----------------------------------
 
 const rooms = {};
 
@@ -135,13 +102,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// -----------------------------------
-// 起動
-// -----------------------------------
-
 server.listen(PORT, () => {
-  console.log("================================");
-  console.log("仙人tools 起動成功");
-  console.log("PORT:", PORT);
-  console.log("================================");
+  console.log("仙人tools 起動成功 PORT:", PORT);
 });
