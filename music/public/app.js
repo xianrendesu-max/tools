@@ -1,45 +1,149 @@
+// ===============================
+// 仙人music app.js（完全版）
+// ===============================
+
+// -------------------------------
+// 再生処理
+// -------------------------------
 function playTrack(id, title, artwork) {
-  localStorage.setItem('currentTrack', JSON.stringify({ id, title, artwork }));
-  document.getElementById('player-title').textContent = title;
-  document.getElementById('player-frame').src =
-    `https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/${id}&auto_play=true`;
-  document.getElementById('player-bar').classList.remove('hidden');
-}
+  // 現在再生中の曲を保存
+  localStorage.setItem(
+    "currentTrack",
+    JSON.stringify({
+      id: id,
+      title: title,
+      artwork: artwork
+    })
+  );
 
-function toggleFavorite(artwork_url, title, id) {
-  let f = JSON.parse(localStorage.getItem('favorites')) || [];
-  const i = f.findIndex(t => t.id === id);
-  if (i === -1) f.push({ artwork_url, title, id });
-  else f.splice(i, 1);
-  localStorage.setItem('favorites', JSON.stringify(f));
-}
+  // プレイヤーUI更新
+  const titleEl = document.getElementById("player-title");
+  const frameEl = document.getElementById("player-frame");
+  const barEl = document.getElementById("player-bar");
 
-function showFavorites() {
-  const list = JSON.parse(localStorage.getItem('favorites')) || [];
-  const c = document.getElementById('content');
-  c.innerHTML = '';
-
-  if (!list.length) {
-    c.innerHTML = '<p class="text-center text-gray-500">お気に入りなし</p>';
+  if (!titleEl || !frameEl || !barEl) {
+    console.error("player elements not found");
     return;
   }
 
-  list.forEach(t => {
-    const d = document.createElement('div');
-    d.className = 'bg-white p-4 rounded-2xl shadow flex gap-4 items-center';
-    d.innerHTML = `
-      <img src="${t.artwork_url}" class="w-20 h-20 rounded-xl">
-      <div class="flex-1 font-bold">${t.title}</div>
-      <button class="bg-blue-500 text-white w-12 h-12 rounded-full">▶</button>
-      <button class="text-2xl">❤️</button>
-    `;
-    d.children[2].onclick = () => playTrack(t.id, t.title, t.artwork_url);
-    d.children[3].onclick = () => toggleFavorite(t.artwork_url, t.title, t.id);
-    c.appendChild(d);
+  titleEl.textContent = title;
+
+  frameEl.src =
+    "https://w.soundcloud.com/player/?url=" +
+    encodeURIComponent("https://api.soundcloud.com/tracks/" + id) +
+    "&auto_play=true";
+
+  barEl.classList.remove("hidden");
+}
+
+// -------------------------------
+// お気に入り切り替え
+// -------------------------------
+function toggleFavorite(artwork_url, title, id) {
+  let favorites = [];
+
+  try {
+    favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+  } catch (e) {
+    favorites = [];
+  }
+
+  const index = favorites.findIndex(t => t.id === id);
+
+  if (index === -1) {
+    favorites.push({
+      artwork_url: artwork_url,
+      title: title,
+      id: id
+    });
+  } else {
+    favorites.splice(index, 1);
+  }
+
+  localStorage.setItem("favorites", JSON.stringify(favorites));
+}
+
+// -------------------------------
+// お気に入り一覧表示
+// -------------------------------
+function showFavorites() {
+  let list = [];
+
+  try {
+    list = JSON.parse(localStorage.getItem("favorites")) || [];
+  } catch (e) {
+    list = [];
+  }
+
+  const content = document.getElementById("content");
+  if (!content) {
+    console.error("content element not found");
+    return;
+  }
+
+  content.innerHTML = "";
+
+  if (!list.length) {
+    content.innerHTML =
+      '<p class="text-center text-gray-500">お気に入りなし</p>';
+    return;
+  }
+
+  list.forEach(track => {
+    const card = document.createElement("div");
+    card.className =
+      "bg-white p-4 rounded-2xl shadow flex gap-4 items-center";
+
+    // アートワーク
+    const img = document.createElement("img");
+    img.src = track.artwork_url;
+    img.className = "w-20 h-20 rounded-xl object-cover";
+
+    // タイトル
+    const title = document.createElement("div");
+    title.className = "flex-1 font-bold";
+    title.textContent = track.title;
+
+    // 再生ボタン
+    const playBtn = document.createElement("button");
+    playBtn.className =
+      "bg-blue-500 hover:bg-blue-600 text-white w-12 h-12 rounded-full transition";
+    playBtn.textContent = "▶";
+    playBtn.onclick = () => {
+      playTrack(track.id, track.title, track.artwork_url);
+    };
+
+    // お気に入り解除ボタン
+    const favBtn = document.createElement("button");
+    favBtn.className = "text-2xl";
+    favBtn.textContent = "❤️";
+    favBtn.onclick = () => {
+      toggleFavorite(track.artwork_url, track.title, track.id);
+      showFavorites();
+    };
+
+    card.appendChild(img);
+    card.appendChild(title);
+    card.appendChild(playBtn);
+    card.appendChild(favBtn);
+
+    content.appendChild(card);
   });
 }
 
+// -------------------------------
+// ページ読み込み時に再生復元
+// -------------------------------
 (function restorePlayer() {
-  const t = JSON.parse(localStorage.getItem('currentTrack'));
-  if (t) playTrack(t.id, t.title, t.artwork);
+  let track = null;
+
+  try {
+    track = JSON.parse(localStorage.getItem("currentTrack"));
+  } catch (e) {
+    track = null;
+  }
+
+  if (track && track.id && track.title && track.artwork) {
+    playTrack(track.id, track.title, track.artwork);
+  }
 })();
