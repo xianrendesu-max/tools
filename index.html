@@ -6,66 +6,107 @@
 <title>仙人tools</title>
 
 <style>
-body{
-  margin:0;
-  font-family:system-ui,-apple-system,BlinkMacSystemFont;
-  background:linear-gradient(135deg,#f7fbff,#edf3ff);
+* {
+  box-sizing: border-box;
 }
-header{
-  padding:20px;
-  font-size:26px;
-  font-weight:800;
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #f7fbff, #eef3ff);
+  color: #000;
 }
-.grid{
-  display:grid;
-  gap:18px;
-  padding:18px;
+
+/* ヘッダー */
+header {
+  padding: 22px 18px 10px;
+  font-size: 26px;
+  font-weight: 800;
 }
-.card{
-  background:#fff;
-  border-radius:20px;
-  padding:26px;
-  text-align:center;
-  box-shadow:0 12px 30px rgba(0,0,0,.1);
+
+/* 説明 */
+.sub {
+  padding: 0 18px 18px;
+  color: #555;
+  font-size: 14px;
 }
-.card a{
-  text-decoration:none;
-  color:#000;
-  font-size:20px;
-  font-weight:700;
-  display:block;
+
+/* カード */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  padding: 18px;
 }
-.icon{
-  font-size:36px;
-  margin-bottom:10px;
+
+.card {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 28px 20px;
+  text-align: center;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.1);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.card:active {
+  transform: scale(0.97);
+}
+
+.card a {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.icon {
+  font-size: 38px;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.desc {
+  font-size: 14px;
+  color: #666;
 }
 </style>
 </head>
 
 <body>
+
 <header>🧰 仙人tools</header>
+<div class="sub">使いたいツールを選んでください</div>
 
 <div class="grid">
+
   <div class="card">
     <a href="/chat/">
       <div class="icon">💬</div>
-      仙人チャット
+      <div class="title">仙人チャット</div>
+      <div class="desc">シンプルで使いやすいチャット</div>
     </a>
   </div>
 
   <div class="card">
     <a href="/music/">
       <div class="icon">🎵</div>
-      仙人music
+      <div class="title">仙人music</div>
+      <div class="desc">音楽検索・再生</div>
     </a>
   </div>
 
   <div class="card">
     <a href="/proxy/">
       <div class="icon">🌐</div>
-      仙人proxy
+      <div class="title">仙人proxy</div>
+      <div class="desc">Webアクセス補助</div>
     </a>
   </div>
+
 </div>
+
 </body>
 </html>
