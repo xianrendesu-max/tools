@@ -12,7 +12,6 @@ const PORT = process.env.PORT || 3000;
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "music/views"));
 
-app.use(express.static(__dirname));
 app.use("/chat", express.static(path.join(__dirname, "chat/public")));
 app.use("/music", express.static(path.join(__dirname, "music/public")));
 app.use("/proxy", express.static(path.join(__dirname, "proxy")));
@@ -22,18 +21,12 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.get("/chat/", (req, res) => {
-  res.sendFile(path.join(__dirname, "chat/public/index.html"));
-});
-
 const musicRouter = require("./music/routes/music");
 app.use("/music", musicRouter);
 
 const rooms = {};
 
 io.on("connection", (socket) => {
-  console.log("接続:", socket.id);
-
   socket.on("joinRoom", ({ username, room }, callback) => {
     if (!username || !room) {
       callback({ status: "error", message: "ニックネームとルーム名が必要です。" });
@@ -41,7 +34,6 @@ io.on("connection", (socket) => {
     }
 
     if (!rooms[room]) rooms[room] = {};
-
     if (Object.values(rooms[room]).includes(username)) {
       callback({ status: "error", message: "そのニックネームは既に使われています。" });
       return;
@@ -67,7 +59,7 @@ io.on("connection", (socket) => {
 
   socket.on("chatMessage", ({ text, image }) => {
     const joinedRooms = [...socket.rooms].filter(r => r !== socket.id);
-    if (joinedRooms.length === 0) return;
+    if (!joinedRooms.length) return;
 
     const room = joinedRooms[0];
     const username = rooms[room]?.[socket.id];
@@ -92,13 +84,10 @@ io.on("connection", (socket) => {
           image: null
         });
 
-        if (Object.keys(rooms[room]).length === 0) {
-          delete rooms[room];
-        }
+        if (!Object.keys(rooms[room]).length) delete rooms[room];
         break;
       }
     }
-    console.log("切断:", socket.id);
   });
 });
 
