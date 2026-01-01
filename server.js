@@ -5,7 +5,12 @@ const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+const isVercel = !!process.env.VERCEL;
+
+const io = new Server(server, isVercel ? {
+  transports: ["polling"]
+} : {});
 
 const PORT = process.env.PORT || 3000;
 
@@ -27,6 +32,7 @@ app.use("/music", musicRouter);
 const rooms = {};
 
 io.on("connection", (socket) => {
+
   socket.on("joinRoom", ({ username, room }, callback) => {
     if (!username || !room) {
       callback({ status: "error", message: "ニックネームとルーム名が必要です。" });
@@ -34,6 +40,7 @@ io.on("connection", (socket) => {
     }
 
     if (!rooms[room]) rooms[room] = {};
+
     if (Object.values(rooms[room]).includes(username)) {
       callback({ status: "error", message: "そのニックネームは既に使われています。" });
       return;
@@ -92,5 +99,7 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log("仙人tools 起動成功 PORT:", PORT);
+  console.log("仙人tools 起動成功");
+  console.log("MODE:", isVercel ? "VERCEL (polling)" : "NORMAL (websocket)");
+  console.log("PORT:", PORT);
 });
