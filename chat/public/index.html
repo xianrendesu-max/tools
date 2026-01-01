@@ -4,9 +4,54 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>仙人メッセージ</title>
+
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#4caf50" />
+
+  <style>
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 5px solid #c8e6c9;
+      border-top-color: #4caf50;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 14px;
+      color: #333;
+    }
+
+    #vercelNotice {
+      display: none;
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+  </style>
+
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -17,9 +62,18 @@
     }
   </script>
 </head>
+
 <body>
   <div id="login">
     <h2>仙人メッセージに参加</h2>
+
+    <!-- Vercel 注意メッセージ -->
+    <div id="vercelNotice">
+      ⚠ <strong>Vercel モード</strong><br>
+      この環境ではリアルタイム通信（Socket.IO）が制限されるため、<br>
+      参加・メッセージ送信が動作しない場合があります。
+    </div>
+
     <input type="text" id="nicknameInput" placeholder="ニックネーム" />
     <input type="text" id="roomInput" placeholder="ルーム名" />
     <button id="joinBtn">参加</button>
@@ -35,7 +89,41 @@
     </form>
   </div>
 
+  <!-- 参加中ローディング -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">参加中…</div>
+  </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
+
+  <script>
+    const joinBtn = document.getElementById("joinBtn");
+    const loading = document.getElementById("loading");
+    const chat = document.getElementById("chat");
+    const vercelNotice = document.getElementById("vercelNotice");
+
+    // Vercel 環境判定
+    if (location.hostname.includes("vercel.app")) {
+      vercelNotice.style.display = "block";
+    }
+
+    joinBtn.addEventListener("click", () => {
+      loading.style.display = "flex";
+    });
+
+    const observer = new MutationObserver(() => {
+      if (chat.style.display !== "none") {
+        loading.style.display = "none";
+        observer.disconnect();
+      }
+    });
+
+    observer.observe(chat, {
+      attributes: true,
+      attributeFilter: ["style"]
+    });
+  </script>
 </body>
-</html>
+      </html>
